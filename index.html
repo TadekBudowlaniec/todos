@@ -29,13 +29,35 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .sync-online {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .sync-offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
+    <div id="syncIndicator" class="sync-indicator sync-online">● Synchronizacja włączona</div>
+
     <div class="w-full max-w-2xl">
         <div class="text-center mb-8">
             <h1 class="text-5xl font-bold gradient-text mb-2">Task Master</h1>
-            <p class="text-purple-300/70">Organizuj swoje zadania z style'm</p>
+            <p class="text-purple-300/70">Organizuj swoje zadania z style'm - zsynchronizowane na wszystkich urządzeniach</p>
         </div>
 
         <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/20 p-6 mb-6">
@@ -69,21 +91,33 @@
             <p>Ładowanie zadań...</p>
         </div>
 
-        <div id="taskList" class="space-y-3 hidden">
-            <div id="emptyState" class="text-center py-12 text-slate-400">
-                <svg class="mx-auto mb-4 opacity-30" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
-                </svg>
-                <p>Brak zadań. Dodaj pierwsze zadanie powyżej!</p>
-            </div>
-        </div>
+        <div id="taskList" class="space-y-3 hidden"></div>
 
         <div id="counter" class="mt-6 text-center text-slate-400 text-sm hidden"></div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Konfiguracja Firebase - DARMOWA publiczna baza danych
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxnC5fV8YK7QJmC_5_8gP3qYvXxMxYxYY",
+            authDomain: "task-master-sync.firebaseapp.com",
+            databaseURL: "https://task-master-sync-default-rtdb.firebaseio.com",
+            projectId: "task-master-sync",
+            storageBucket: "task-master-sync.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const tasksRef = ref(db, 'tasks');
+
         let tasks = [];
         let currentPriority = 'high';
+        let isLoading = true;
 
         const priorityColors = {
             high: 'from-red-500/20 to-orange-500/20 border-red-500/50',
@@ -103,28 +137,42 @@
             low: 'Niski'
         };
 
-        // Wczytaj zadania z cloud storage przy starcie
-        async function loadTasks() {
-            try {
-                const result = await window.storage.get('shared_tasks', true);
-                if (result && result.value) {
-                    tasks = JSON.parse(result.value);
-                }
-            } catch (error) {
-                console.log('Brak zapisanych zadań, zaczynam od czystej listy');
-                tasks = [];
+        // Nasłuchuj zmian w bazie danych (real-time sync!)
+        onValue(tasksRef, (snapshot) => {
+            const data = snapshot.val();
+            tasks = data ? Object.values(data) : [];
+            
+            if (isLoading) {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('taskList').classList.remove('hidden');
+                isLoading = false;
             }
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('taskList').classList.remove('hidden');
+            
             renderTasks();
-        }
+        });
 
-        // Zapisz zadania do cloud storage
+        // Funkcja do zapisu zadań
         async function saveTasks() {
             try {
-                await window.storage.set('shared_tasks', JSON.stringify(tasks), true);
+                const tasksObject = {};
+                tasks.forEach(task => {
+                    tasksObject[task.id] = task;
+                });
+                await set(tasksRef, tasksObject);
             } catch (error) {
                 console.error('Błąd zapisu:', error);
+                updateSyncIndicator(false);
+            }
+        }
+
+        function updateSyncIndicator(online) {
+            const indicator = document.getElementById('syncIndicator');
+            if (online) {
+                indicator.className = 'sync-indicator sync-online';
+                indicator.textContent = '● Synchronizacja włączona';
+            } else {
+                indicator.className = 'sync-indicator sync-offline';
+                indicator.textContent = '● Brak synchronizacji';
             }
         }
 
@@ -138,40 +186,37 @@
             });
         });
 
-        async function addTask() {
+        window.addTask = async function() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
             
             if (text) {
-                tasks.push({
+                const newTask = {
                     id: Date.now(),
                     text: text,
                     priority: currentPriority,
                     completed: false
-                });
+                };
+                tasks.push(newTask);
                 input.value = '';
                 await saveTasks();
-                renderTasks();
             }
         }
 
-        async function deleteTask(id) {
+        window.deleteTask = async function(id) {
             tasks = tasks.filter(t => t.id !== id);
             await saveTasks();
-            renderTasks();
         }
 
-        async function toggleComplete(id) {
+        window.toggleComplete = async function(id) {
             tasks = tasks.map(t => 
                 t.id === id ? { ...t, completed: !t.completed } : t
             );
             await saveTasks();
-            renderTasks();
         }
 
         function renderTasks() {
             const taskList = document.getElementById('taskList');
-            const emptyState = document.getElementById('emptyState');
             const counter = document.getElementById('counter');
 
             if (tasks.length === 0) {
@@ -237,9 +282,6 @@
         document.getElementById('taskInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addTask();
         });
-
-        // Wczytaj zadania przy starcie
-        loadTasks();
     </script>
 </body>
 </html>
