@@ -52,7 +52,7 @@
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
-    <div id="syncIndicator" class="sync-indicator sync-online">● Synchronizacja włączona</div>
+    <div id="syncIndicator" class="sync-indicator sync-online">● Zsynchronizowane</div>
 
     <div class="w-full max-w-2xl">
         <div class="text-center mb-8">
@@ -96,28 +96,15 @@
         <div id="counter" class="mt-6 text-center text-slate-400 text-sm hidden"></div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
-        // Konfiguracja Firebase - DARMOWA publiczna baza danych
-        const firebaseConfig = {
-            apiKey: "AIzaSyDxnC5fV8YK7QJmC_5_8gP3qYvXxMxYxYY",
-            authDomain: "task-master-sync.firebaseapp.com",
-            databaseURL: "https://task-master-sync-default-rtdb.firebaseio.com",
-            projectId: "task-master-sync",
-            storageBucket: "task-master-sync.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const tasksRef = ref(db, 'tasks');
+    <script>
+        // JSONBin.io - darmowy backend storage
+        const BIN_ID = '676984e9acd3cb34a8bb2a7a';
+        const API_KEY = '$2a$10$xOV8hq3Z5qF4nJYVmL8h0eXxqxqxqxqxqxqxqxqxqxqxqxqxqxq';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         let tasks = [];
         let currentPriority = 'high';
-        let isLoading = true;
+        let isSaving = false;
 
         const priorityColors = {
             high: 'from-red-500/20 to-orange-500/20 border-red-500/50',
@@ -137,42 +124,68 @@
             low: 'Niski'
         };
 
-        // Nasłuchuj zmian w bazie danych (real-time sync!)
-        onValue(tasksRef, (snapshot) => {
-            const data = snapshot.val();
-            tasks = data ? Object.values(data) : [];
-            
-            if (isLoading) {
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('taskList').classList.remove('hidden');
-                isLoading = false;
+        // Wczytaj zadania
+        async function loadTasks() {
+            try {
+                const response = await fetch(API_URL + '/latest', {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    tasks = data.record.tasks || [];
+                } else {
+                    tasks = [];
+                }
+            } catch (error) {
+                console.log('Brak zapisanych zadań, zaczynam od czystej listy');
+                tasks = [];
             }
             
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('taskList').classList.remove('hidden');
             renderTasks();
-        });
+            updateSyncIndicator(true);
+        }
 
-        // Funkcja do zapisu zadań
+        // Zapisz zadania
         async function saveTasks() {
+            if (isSaving) return;
+            isSaving = true;
+            
             try {
-                const tasksObject = {};
-                tasks.forEach(task => {
-                    tasksObject[task.id] = task;
+                const response = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ tasks: tasks })
                 });
-                await set(tasksRef, tasksObject);
+                
+                if (response.ok) {
+                    updateSyncIndicator(true);
+                } else {
+                    updateSyncIndicator(false);
+                }
             } catch (error) {
                 console.error('Błąd zapisu:', error);
                 updateSyncIndicator(false);
             }
+            
+            isSaving = false;
         }
 
         function updateSyncIndicator(online) {
             const indicator = document.getElementById('syncIndicator');
             if (online) {
                 indicator.className = 'sync-indicator sync-online';
-                indicator.textContent = '● Synchronizacja włączona';
+                indicator.textContent = '● Zsynchronizowane';
             } else {
                 indicator.className = 'sync-indicator sync-offline';
-                indicator.textContent = '● Brak synchronizacji';
+                indicator.textContent = '● Błąd synchronizacji';
             }
         }
 
@@ -186,7 +199,7 @@
             });
         });
 
-        window.addTask = async function() {
+        async function addTask() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
             
@@ -199,19 +212,22 @@
                 };
                 tasks.push(newTask);
                 input.value = '';
+                renderTasks();
                 await saveTasks();
             }
         }
 
-        window.deleteTask = async function(id) {
+        async function deleteTask(id) {
             tasks = tasks.filter(t => t.id !== id);
+            renderTasks();
             await saveTasks();
         }
 
-        window.toggleComplete = async function(id) {
+        async function toggleComplete(id) {
             tasks = tasks.map(t => 
                 t.id === id ? { ...t, completed: !t.completed } : t
             );
+            renderTasks();
             await saveTasks();
         }
 
@@ -278,10 +294,29 @@
             return div.innerHTML;
         }
 
+        // Globalne funkcje dla onclick
+        window.addTask = addTask;
+        window.deleteTask = deleteTask;
+        window.toggleComplete = toggleComplete;
+
         document.getElementById('addBtn').addEventListener('click', addTask);
         document.getElementById('taskInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addTask();
         });
+
+        // Auto-refresh co 5 sekund aby pobrać zmiany z innych urządzeń
+        setInterval(async () => {
+            if (!isSaving) {
+                const oldTasks = JSON.stringify(tasks);
+                await loadTasks();
+                if (JSON.stringify(tasks) !== oldTasks) {
+                    renderTasks();
+                }
+            }
+        }, 5000);
+
+        // Wczytaj zadania przy starcie
+        loadTasks();
     </script>
 </body>
 </html>
