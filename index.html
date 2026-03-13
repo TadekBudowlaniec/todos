@@ -3,161 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Task Master - Mobile Fix</title>
+    <title>TaskMaster Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            background-color: #0f111a;
-            font-family: 'Outfit', sans-serif;
+            background-color: #09090b;
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            overflow-x: hidden; /* Zapobiega przewijaniu na boki */
+            overflow-x: hidden;
+            color: #e4e4e7;
         }
 
-        /* TŁO AURORA */
-        .aurora-blob {
-            position: absolute;
-            filter: blur(80px);
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 64px 64px;
+            z-index: -2;
+        }
+
+        /* Glow orbs */
+        .glow-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
             z-index: -1;
-            opacity: 0.6;
-            animation: float 10s infinite ease-in-out;
+            opacity: 0.4;
+            animation: orbFloat 20s infinite ease-in-out;
         }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #7c3aed; animation-delay: 0s; }
-        .blob-2 { top: 20%; right: -10%; width: 400px; height: 400px; background: #db2777; animation-delay: 2s; }
-        .blob-3 { bottom: -10%; left: 20%; width: 600px; height: 600px; background: #2563eb; animation-delay: 4s; }
+        .orb-1 { top: -15%; left: -10%; width: 600px; height: 600px; background: #7c3aed; animation-delay: 0s; }
+        .orb-2 { top: 40%; right: -15%; width: 500px; height: 500px; background: #ec4899; animation-delay: 5s; }
+        .orb-3 { bottom: -20%; left: 30%; width: 700px; height: 700px; background: #3b82f6; animation-delay: 10s; }
 
-        @keyframes float {
+        @keyframes orbFloat {
             0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(20px, -20px) scale(1.1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 15px) scale(0.95); }
         }
 
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.4);
+        /* Glass card */
+        .glass {
+            background: rgba(24, 24, 27, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .glass-light {
+            background: rgba(39, 39, 42, 0.5);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .task-enter { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(113, 113, 122, 0.3); border-radius: 4px; }
+
+        /* Animations */
+        .task-enter { animation: taskSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes taskSlide {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Ukryj scrollbar ale zachowaj funkcjonalność */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .cat-enter { animation: catPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes catPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Category chip active */
+        .cat-chip { transition: all 0.2s ease; }
+        .cat-chip:hover { transform: translateY(-1px); }
+        .cat-chip.active { transform: translateY(-1px); box-shadow: 0 4px 20px -4px var(--chip-glow); }
+
+        /* Task checkbox */
+        .task-check {
+            width: 22px; height: 22px;
+            border-radius: 7px;
+            border: 2px solid #3f3f46;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .task-check:hover { border-color: #7c3aed; }
+        .task-check.checked {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            border-color: transparent;
+        }
+
+        /* Input focus glow */
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        /* Delete button */
+        .del-btn {
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+        .task-row:hover .del-btn { opacity: 1; }
+        @media (max-width: 640px) { .del-btn { opacity: 0.6; } }
+
+        /* Progress bar */
+        .progress-fill {
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.hidden { display: none; }
+
+        /* Tooltip */
+        .stat-card {
+            transition: all 0.2s ease;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+
+        /* Responsive sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed; bottom: 0; left: 0; right: 0;
+                z-index: 50;
+                border-radius: 20px 20px 0 0;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            .sidebar.collapsed {
+                max-height: 56px;
+                overflow: hidden;
+            }
+        }
     </style>
 </head>
-<body class="flex items-start justify-center p-4 pt-16 sm:pt-20 text-slate-200">
+<body>
 
-    <div class="aurora-blob blob-1"></div>
-    <div class="aurora-blob blob-2"></div>
-    <div class="aurora-blob blob-3"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
 
-    <div id="syncStatus" class="fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel text-xs font-bold transition-all z-50">
-        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-        <span class="tracking-wide uppercase text-[10px]">Gotowy</span>
+    <!-- SYNC STATUS -->
+    <div id="syncStatus" class="fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs font-semibold z-50 transition-all">
+        <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
+        <span class="tracking-wide uppercase text-[10px] text-zinc-400">Gotowy</span>
     </div>
 
-    <div class="w-full max-w-2xl relative">
-        
-        <div class="text-center mb-8">
-            <h1 class="text-5xl sm:text-6xl font-bold text-white mb-2 tracking-tight drop-shadow-xl">
-                Task<span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Master</span>
-            </h1>
-            <div class="flex items-center justify-center gap-4 mt-4">
-                <button id="refreshBtn" class="group flex items-center gap-2 px-4 py-2 rounded-full glass-panel hover:bg-white/5 border border-white/10 transition-all text-sm font-medium text-slate-300 hover:text-white hover:border-purple-500/50">
-                    <svg class="w-4 h-4 text-purple-400 transition-transform group-hover:rotate-180 duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    <!-- MAIN LAYOUT -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="sidebar md:sticky md:top-0 md:h-screen md:w-72 lg:w-80 glass md:border-r md:border-white/5 flex flex-col z-50">
+
+            <!-- Mobile toggle -->
+            <button id="sidebarToggle" class="md:hidden flex items-center justify-between w-full px-5 py-4">
+                <span class="text-sm font-semibold text-zinc-300" id="sidebarLabel">Kategorie</span>
+                <svg id="sidebarArrow" class="w-5 h-5 text-zinc-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                </svg>
+            </button>
+
+            <div class="p-5 hidden md:block">
+                <h1 class="text-2xl font-extrabold tracking-tight">
+                    Task<span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Master</span>
+                </h1>
+                <p class="text-xs text-zinc-500 mt-1">Organizuj. Planuj. Realizuj.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="px-5 pb-4 hidden md:block">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="stat-card glass-light rounded-xl p-3 text-center">
+                        <div id="statTotal" class="text-xl font-bold text-white">0</div>
+                        <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Zadania</div>
+                    </div>
+                    <div class="stat-card glass-light rounded-xl p-3 text-center">
+                        <div id="statDone" class="text-xl font-bold text-emerald-400">0</div>
+                        <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Gotowe</div>
+                    </div>
+                </div>
+                <div class="mt-3 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                    <div id="progressBar" class="progress-fill h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full" style="width: 0%"></div>
+                </div>
+                <div id="progressText" class="text-[10px] text-zinc-500 mt-1.5 text-right">0%</div>
+            </div>
+
+            <!-- Category list -->
+            <div class="flex-1 overflow-y-auto px-3 pb-3" id="sidebarContent">
+                <div class="px-2 mb-2 flex items-center justify-between">
+                    <span class="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Kategorie</span>
+                    <button id="addCatBtn" class="text-zinc-500 hover:text-violet-400 transition-colors p-1 rounded-lg hover:bg-violet-500/10" title="Dodaj kategorie">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                </div>
+
+                <!-- "All" button -->
+                <button id="allCatBtn" class="cat-chip w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-left transition-all hover:bg-white/5 active"
+                    onclick="selectCategory(null)">
+                    <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center text-sm">
+                        <svg class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-zinc-200 truncate">Wszystkie</div>
+                    </div>
+                    <span id="allCount" class="text-[11px] text-zinc-500 font-medium">0</span>
+                </button>
+
+                <div id="categoryList" class="space-y-1"></div>
+            </div>
+
+            <!-- Sync button -->
+            <div class="p-3 border-t border-white/5 hidden md:block">
+                <button id="refreshBtn" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-all">
+                    <svg id="refreshIcon" class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
                     Synchronizuj
                 </button>
             </div>
-        </div>
+        </aside>
 
-        <div class="glass-panel rounded-3xl p-4 sm:p-6 mb-8 relative group overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 min-h-screen pb-20 md:pb-8">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
 
-            <div class="relative z-10">
-                <div class="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-5">
-                    <input type="text" id="taskInput" placeholder="Co planujesz zrobić?" 
-                        class="flex-1 bg-slate-900/60 text-white placeholder-slate-500 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all border border-slate-700/50 hover:border-slate-600 shadow-inner w-full">
-                    
-                    <button id="addBtn" class="w-full sm:w-auto bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-2xl px-6 py-3 sm:py-0 font-semibold transition-all shadow-lg shadow-purple-900/40 active:scale-95 flex items-center justify-center gap-2">
-                        <span class="sm:hidden">Dodaj zadanie</span> <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                        </svg>
-                    </button>
+                <!-- Header -->
+                <div class="mb-8 fade-in">
+                    <div class="flex items-center gap-3 mb-1">
+                        <span id="categoryIcon" class="text-2xl">...</span>
+                        <h2 id="categoryTitle" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Wszystkie zadania</h2>
+                    </div>
+                    <p id="categoryDesc" class="text-sm text-zinc-500 ml-11">Przegladaj wszystkie swoje zadania</p>
                 </div>
-                
-                <div class="grid grid-cols-3 gap-2 sm:gap-3">
-                    <button class="p-btn py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-transparent transition-all bg-slate-800/50 text-slate-400 hover:bg-slate-700/50" data-p="high">🔥 Pilne</button>
-                    <button class="p-btn py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-transparent transition-all bg-slate-800/50 text-slate-400 hover:bg-slate-700/50" data-p="medium">⭐ Ważne</button>
-                    <button class="p-btn py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-transparent transition-all bg-slate-800/50 text-slate-400 hover:bg-slate-700/50" data-p="low">☕ Luz</button>
+
+                <!-- Add task form -->
+                <div class="glass rounded-2xl p-4 sm:p-5 mb-6 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-violet-500/5 via-transparent to-fuchsia-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                    <div class="relative z-10">
+                        <div class="flex gap-3 mb-3">
+                            <input type="text" id="taskInput" placeholder="Dodaj nowe zadanie..."
+                                class="input-glow flex-1 bg-zinc-900/60 text-white placeholder-zinc-600 rounded-xl px-4 py-3 outline-none border border-zinc-800 hover:border-zinc-700 focus:border-violet-500/50 transition-all text-sm">
+                            <button id="addBtn" class="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl px-5 py-3 font-semibold transition-all shadow-lg shadow-violet-900/30 active:scale-95 text-sm flex items-center gap-2 flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                <span class="hidden sm:inline">Dodaj</span>
+                            </button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <!-- Priority buttons -->
+                            <div class="flex gap-1.5 mr-3">
+                                <button class="p-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700/80 border border-transparent" data-p="high">Pilne</button>
+                                <button class="p-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700/80 border border-transparent" data-p="medium">Wazne</button>
+                                <button class="p-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700/80 border border-transparent" data-p="low">Luz</button>
+                            </div>
+
+                            <!-- Category selector in form -->
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                                <select id="taskCategorySelect" class="bg-zinc-800/80 text-zinc-300 text-xs rounded-lg px-2 py-1.5 border border-zinc-700/50 outline-none focus:border-violet-500/50 cursor-pointer">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter tabs -->
+                <div class="flex items-center gap-2 mb-5">
+                    <button class="filter-btn text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-filter="all">Wszystkie</button>
+                    <button class="filter-btn text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-filter="active">Aktywne</button>
+                    <button class="filter-btn text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-filter="completed">Ukonczone</button>
+                    <div class="flex-1"></div>
+                    <span id="taskCount" class="text-xs text-zinc-500"></span>
+                </div>
+
+                <!-- Task list -->
+                <div id="taskList" class="space-y-2">
+                    <div class="text-center py-16 opacity-40">
+                        <p class="text-sm">Ladowanie...</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <div id="taskList" class="space-y-3 sm:space-y-4 pb-24">
-            <div class="text-center py-12 opacity-40">
-                <p class="text-lg font-light tracking-wide">Pobieranie Twoich planów...</p>
+    <!-- ADD CATEGORY MODAL -->
+    <div id="catModal" class="modal-overlay hidden" onclick="if(event.target===this)closeCatModal()">
+        <div class="glass rounded-2xl p-6 w-full max-w-sm cat-enter">
+            <h3 class="text-lg font-bold text-white mb-4">Nowa kategoria</h3>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-zinc-400 mb-1 block">Nazwa</label>
+                    <input type="text" id="catNameInput" placeholder="np. Praca" maxlength="20"
+                        class="input-glow w-full bg-zinc-900/60 text-white placeholder-zinc-600 rounded-xl px-4 py-2.5 outline-none border border-zinc-800 focus:border-violet-500/50 transition-all text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-zinc-400 mb-1 block">Ikona</label>
+                    <div id="iconPicker" class="grid grid-cols-8 gap-1.5"></div>
+                </div>
+                <div>
+                    <label class="text-xs text-zinc-400 mb-1 block">Kolor</label>
+                    <div id="colorPicker" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-5">
+                <button onclick="closeCatModal()" class="flex-1 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-all">Anuluj</button>
+                <button onclick="saveCategory()" class="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-all shadow-lg shadow-violet-900/30">Dodaj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CATEGORY CONFIRM -->
+    <div id="deleteCatModal" class="modal-overlay hidden" onclick="if(event.target===this)closeDeleteCatModal()">
+        <div class="glass rounded-2xl p-6 w-full max-w-sm cat-enter">
+            <h3 class="text-lg font-bold text-white mb-2">Usunac kategorie?</h3>
+            <p class="text-sm text-zinc-400 mb-1">Kategoria: <strong id="deleteCatName" class="text-white"></strong></p>
+            <p class="text-xs text-zinc-500 mb-5">Wszystkie zadania w tej kategorii zostana rowniez usuniete.</p>
+            <div class="flex gap-2">
+                <button onclick="closeDeleteCatModal()" class="flex-1 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-all">Anuluj</button>
+                <button onclick="confirmDeleteCategory()" class="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-500 transition-all">Usun</button>
             </div>
         </div>
     </div>
 
 <script>
     // ==========================================
-    // KLUCZE API
+    // API CONFIG
     // ==========================================
-    const BIN_ID = '694b89db43b1c97be90213d7'; 
-    const API_KEY = '$2a$10$JSk4K56EtQw7N9T/bE9EWOLV8NHEaiTWxIrbhmSz2MO9LPQU4cuN6'; 
+    const BIN_ID = '694b89db43b1c97be90213d7';
+    const API_KEY = '$2a$10$JSk4K56EtQw7N9T/bE9EWOLV8NHEaiTWxIrbhmSz2MO9LPQU4cuN6';
+    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
     // ==========================================
 
-    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-    
+    // Available icons & colors for categories
+    const ICONS = ['📋','💼','🏠','🎓','💪','🛒','💡','🎯','🎮','📚','🎵','✈️','🍕','💰','❤️','🔧'];
+    const COLORS = [
+        { name: 'violet', bg: 'bg-violet-500', ring: 'ring-violet-500', text: 'text-violet-400', hex: '#8b5cf6' },
+        { name: 'fuchsia', bg: 'bg-fuchsia-500', ring: 'ring-fuchsia-500', text: 'text-fuchsia-400', hex: '#d946ef' },
+        { name: 'rose', bg: 'bg-rose-500', ring: 'ring-rose-500', text: 'text-rose-400', hex: '#f43f5e' },
+        { name: 'amber', bg: 'bg-amber-500', ring: 'ring-amber-500', text: 'text-amber-400', hex: '#f59e0b' },
+        { name: 'emerald', bg: 'bg-emerald-500', ring: 'ring-emerald-500', text: 'text-emerald-400', hex: '#10b981' },
+        { name: 'sky', bg: 'bg-sky-500', ring: 'ring-sky-500', text: 'text-sky-400', hex: '#0ea5e9' },
+        { name: 'orange', bg: 'bg-orange-500', ring: 'ring-orange-500', text: 'text-orange-400', hex: '#f97316' },
+        { name: 'teal', bg: 'bg-teal-500', ring: 'ring-teal-500', text: 'text-teal-400', hex: '#14b8a6' },
+    ];
+
+    const PRIORITY_STYLES = {
+        high:   { label: 'Pilne', dot: 'bg-rose-500', text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+        medium: { label: 'Wazne', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+        low:    { label: 'Luz',   dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' }
+    };
+
+    // State
+    let categories = [];
     let tasks = [];
+    let selectedCategoryId = null; // null = all
     let currentPriority = 'high';
+    let currentFilter = 'all';
     let isSaving = false;
 
-    const styles = {
-        high:   { 
-            border: 'border-l-4 border-l-rose-500', 
-            bg: 'bg-gradient-to-r from-rose-500/5 to-transparent',
-            badge: 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-        },
-        medium: { 
-            border: 'border-l-4 border-l-amber-400', 
-            bg: 'bg-gradient-to-r from-amber-400/5 to-transparent',
-            badge: 'bg-amber-400/10 text-amber-300 border border-amber-400/20'
-        },
-        low:    { 
-            border: 'border-l-4 border-l-emerald-400', 
-            bg: 'bg-gradient-to-r from-emerald-400/5 to-transparent',
-            badge: 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20'
-        }
-    };
+    // Modal state
+    let selectedIcon = ICONS[0];
+    let selectedColor = COLORS[0];
+    let deletingCategoryId = null;
+
+    // ==========================================
+    // DATA OPERATIONS
+    // ==========================================
 
     async function loadFromCloud() {
         if (isSaving) return;
         updateStatus('loading');
-
         try {
             const res = await fetch(API_URL + '/latest', {
                 headers: { 'X-Master-Key': API_KEY }
             });
-
-            if (!res.ok) throw new Error('Błąd klucza lub ID');
-
+            if (!res.ok) throw new Error('Blad polaczenia');
             const data = await res.json();
-            tasks = data.record.tasks || [];
-            render();
+            const record = data.record;
+
+            // Support both old and new format
+            if (record.categories) {
+                categories = record.categories;
+                tasks = record.tasks || [];
+            } else if (record.tasks) {
+                // Migration from old format - assign all tasks to default category
+                categories = [{ id: 1, name: 'Ogolne', icon: '📋', color: 'violet' }];
+                tasks = record.tasks.map(t => ({ ...t, categoryId: t.categoryId || 1 }));
+            } else {
+                categories = [{ id: 1, name: 'Ogolne', icon: '📋', color: 'violet' }];
+                tasks = [];
+            }
+
+            renderAll();
             updateStatus('online');
         } catch (e) {
             console.error(e);
             updateStatus('error');
-            if(tasks.length === 0) {
-                document.getElementById('taskList').innerHTML = `<div class="glass-panel p-6 rounded-2xl text-center text-rose-400">Problem z połączeniem.</div>`;
+            if (tasks.length === 0) {
+                document.getElementById('taskList').innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <div class="text-rose-400 text-sm">Problem z polaczeniem. Sprobuj ponownie.</div>
+                    </div>`;
             }
         }
     }
@@ -165,7 +436,6 @@
     async function saveToCloud() {
         isSaving = true;
         updateStatus('saving');
-
         try {
             const res = await fetch(API_URL, {
                 method: 'PUT',
@@ -173,38 +443,135 @@
                     'Content-Type': 'application/json',
                     'X-Master-Key': API_KEY
                 },
-                body: JSON.stringify({ tasks: tasks })
+                body: JSON.stringify({ categories, tasks })
             });
-
-            if (res.ok) {
-                updateStatus('saved');
-                setTimeout(() => updateStatus('online'), 2000);
-            } else {
-                throw new Error('Save failed');
-            }
+            if (!res.ok) throw new Error('Zapis nie powiodl sie');
+            updateStatus('saved');
+            setTimeout(() => updateStatus('online'), 2000);
         } catch (e) {
             console.error(e);
             updateStatus('error');
-            alert("Błąd zapisu! Sprawdź połączenie.");
         } finally {
             isSaving = false;
         }
     }
+
+    // ==========================================
+    // CATEGORIES
+    // ==========================================
+
+    function selectCategory(id) {
+        selectedCategoryId = id;
+        renderAll();
+        // Collapse sidebar on mobile
+        if (window.innerWidth < 768) {
+            document.getElementById('sidebar').classList.add('collapsed');
+            document.getElementById('sidebarArrow').style.transform = 'rotate(180deg)';
+        }
+    }
+
+    function openCatModal() {
+        document.getElementById('catModal').classList.remove('hidden');
+        document.getElementById('catNameInput').value = '';
+        selectedIcon = ICONS[0];
+        selectedColor = COLORS[0];
+        renderIconPicker();
+        renderColorPicker();
+        document.getElementById('catNameInput').focus();
+    }
+
+    function closeCatModal() {
+        document.getElementById('catModal').classList.add('hidden');
+    }
+
+    function saveCategory() {
+        const name = document.getElementById('catNameInput').value.trim();
+        if (!name) return;
+
+        categories.push({
+            id: Date.now(),
+            name: name,
+            icon: selectedIcon,
+            color: selectedColor.name
+        });
+
+        closeCatModal();
+        renderAll();
+        saveToCloud();
+    }
+
+    function promptDeleteCategory(id) {
+        const cat = categories.find(c => c.id === id);
+        if (!cat) return;
+        deletingCategoryId = id;
+        document.getElementById('deleteCatName').textContent = cat.icon + ' ' + cat.name;
+        document.getElementById('deleteCatModal').classList.remove('hidden');
+    }
+
+    function closeDeleteCatModal() {
+        document.getElementById('deleteCatModal').classList.add('hidden');
+        deletingCategoryId = null;
+    }
+
+    function confirmDeleteCategory() {
+        if (deletingCategoryId == null) return;
+        categories = categories.filter(c => c.id !== deletingCategoryId);
+        tasks = tasks.filter(t => t.categoryId !== deletingCategoryId);
+        if (selectedCategoryId === deletingCategoryId) selectedCategoryId = null;
+        closeDeleteCatModal();
+        renderAll();
+        saveToCloud();
+    }
+
+    function renderIconPicker() {
+        const el = document.getElementById('iconPicker');
+        el.innerHTML = ICONS.map(icon => `
+            <button type="button" onclick="pickIcon('${icon}')"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-base hover:bg-zinc-700 transition-all ${icon === selectedIcon ? 'bg-violet-500/20 ring-2 ring-violet-500' : 'bg-zinc-800'}">
+                ${icon}
+            </button>
+        `).join('');
+    }
+
+    function renderColorPicker() {
+        const el = document.getElementById('colorPicker');
+        el.innerHTML = COLORS.map(c => `
+            <button type="button" onclick="pickColor('${c.name}')"
+                class="w-7 h-7 rounded-full ${c.bg} transition-all ${c.name === selectedColor.name ? 'ring-2 ring-offset-2 ring-offset-zinc-900 ' + c.ring : 'opacity-60 hover:opacity-100'}">
+            </button>
+        `).join('');
+    }
+
+    function pickIcon(icon) { selectedIcon = icon; renderIconPicker(); }
+    function pickColor(name) { selectedColor = COLORS.find(c => c.name === name); renderColorPicker(); }
+
+    // ==========================================
+    // TASKS
+    // ==========================================
 
     function addTask() {
         const input = document.getElementById('taskInput');
         const text = input.value.trim();
         if (!text) return;
 
+        const catSelect = document.getElementById('taskCategorySelect');
+        const categoryId = parseInt(catSelect.value) || (categories[0] && categories[0].id);
+
+        if (!categoryId) {
+            alert('Najpierw dodaj kategorie!');
+            return;
+        }
+
         tasks.unshift({
             id: Date.now(),
             text: text,
             priority: currentPriority,
-            completed: false
+            completed: false,
+            categoryId: categoryId
         });
 
         input.value = '';
-        render();
+        renderAll();
         saveToCloud();
     }
 
@@ -212,115 +579,279 @@
         const task = tasks.find(t => t.id === id);
         if (task) {
             task.completed = !task.completed;
-            render();
+            renderAll();
             saveToCloud();
         }
     }
 
     function removeTask(id) {
-        if(confirm('Usunąć to zadanie?')) {
-            tasks = tasks.filter(t => t.id !== id);
-            render();
-            saveToCloud();
+        tasks = tasks.filter(t => t.id !== id);
+        renderAll();
+        saveToCloud();
+    }
+
+    // ==========================================
+    // RENDERING
+    // ==========================================
+
+    function renderAll() {
+        renderCategories();
+        renderCategorySelect();
+        renderHeader();
+        renderTasks();
+        renderStats();
+    }
+
+    function renderCategories() {
+        const list = document.getElementById('categoryList');
+        const allBtn = document.getElementById('allCatBtn');
+        const allCount = document.getElementById('allCount');
+
+        allCount.textContent = tasks.length;
+
+        if (selectedCategoryId === null) {
+            allBtn.className = 'cat-chip w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-left transition-all bg-violet-500/10 border border-violet-500/20';
+        } else {
+            allBtn.className = 'cat-chip w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-left transition-all hover:bg-white/5';
+        }
+
+        list.innerHTML = categories.map(cat => {
+            const count = tasks.filter(t => t.categoryId === cat.id).length;
+            const color = COLORS.find(c => c.name === cat.color) || COLORS[0];
+            const isActive = selectedCategoryId === cat.id;
+
+            return `
+            <div class="cat-chip flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group transition-all ${isActive ? color.bg + '/10 border border-current/20' : 'hover:bg-white/5'}"
+                style="${isActive ? '--chip-glow:' + color.hex + '40' : ''}"
+                onclick="selectCategory(${cat.id})">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background: ${color.hex}15">${cat.icon}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate ${isActive ? 'text-white' : 'text-zinc-300'}">${cat.name}</div>
+                </div>
+                <span class="text-[11px] font-medium ${isActive ? color.text : 'text-zinc-500'}">${count}</span>
+                <button onclick="event.stopPropagation(); promptDeleteCategory(${cat.id})"
+                    class="del-btn text-zinc-600 hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10 transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>`;
+        }).join('');
+    }
+
+    function renderCategorySelect() {
+        const select = document.getElementById('taskCategorySelect');
+        const current = select.value;
+        select.innerHTML = categories.map(cat =>
+            `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
+        ).join('');
+
+        // If viewing a specific category, pre-select it
+        if (selectedCategoryId) {
+            select.value = selectedCategoryId;
+        } else if (current && categories.some(c => c.id == current)) {
+            select.value = current;
         }
     }
 
-    function render() {
+    function renderHeader() {
+        const iconEl = document.getElementById('categoryIcon');
+        const titleEl = document.getElementById('categoryTitle');
+        const descEl = document.getElementById('categoryDesc');
+
+        if (selectedCategoryId === null) {
+            iconEl.textContent = '📋';
+            titleEl.textContent = 'Wszystkie zadania';
+            descEl.textContent = tasks.length + ' zadan lacznie';
+        } else {
+            const cat = categories.find(c => c.id === selectedCategoryId);
+            if (cat) {
+                const count = tasks.filter(t => t.categoryId === cat.id).length;
+                iconEl.textContent = cat.icon;
+                titleEl.textContent = cat.name;
+                descEl.textContent = count + ' zadan w tej kategorii';
+            }
+        }
+    }
+
+    function renderTasks() {
         const list = document.getElementById('taskList');
-        if (tasks.length === 0) {
+        const countEl = document.getElementById('taskCount');
+
+        let filtered = selectedCategoryId === null
+            ? [...tasks]
+            : tasks.filter(t => t.categoryId === selectedCategoryId);
+
+        if (currentFilter === 'active') filtered = filtered.filter(t => !t.completed);
+        if (currentFilter === 'completed') filtered = filtered.filter(t => t.completed);
+
+        // Sort: active first, then by priority
+        const pOrder = { high: 0, medium: 1, low: 2 };
+        filtered.sort((a, b) => {
+            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            return (pOrder[a.priority] || 2) - (pOrder[b.priority] || 2);
+        });
+
+        countEl.textContent = filtered.length + ' zadan';
+
+        if (filtered.length === 0) {
             list.innerHTML = `
-                <div class="text-center py-16 opacity-50">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    <p class="text-lg">Wszystko zrobione!</p>
+                <div class="text-center py-20 fade-in">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <p class="text-zinc-500 text-sm font-medium">${currentFilter === 'completed' ? 'Brak ukonczonych zadan' : currentFilter === 'active' ? 'Brak aktywnych zadan' : 'Brak zadan — dodaj pierwsze!'}</p>
                 </div>`;
             return;
         }
 
-        const sortedTasks = [...tasks].sort((a, b) => a.completed - b.completed);
+        list.innerHTML = filtered.map(t => {
+            const p = PRIORITY_STYLES[t.priority];
+            const cat = categories.find(c => c.id === t.categoryId);
+            const color = cat ? (COLORS.find(c => c.name === cat.color) || COLORS[0]) : COLORS[0];
 
-        list.innerHTML = sortedTasks.map(t => {
-            const style = styles[t.priority];
             return `
-            <div class="glass-panel group relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl transition-all duration-300 task-enter ${style.border} ${style.bg} ${t.completed ? 'opacity-50 grayscale' : 'hover:bg-white/5'}">
-                
-                <button onclick="toggleTask(${t.id})" 
-                    class="relative flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${t.completed ? 'bg-purple-500 border-purple-500 scale-110' : 'border-slate-500 hover:border-purple-400'}">
-                    ${t.completed ? '<svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>' : ''}
-                </button>
-                
-                <span class="flex-1 text-sm sm:text-[15px] font-medium leading-relaxed break-words ${t.completed ? 'line-through text-slate-500' : 'text-slate-100'}">
-                    ${t.text}
-                </span>
-                
-                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-lg ${style.badge}">
-                        ${t.priority === 'high' ? 'Pilne' : t.priority === 'medium' ? 'Ważne' : 'Luz'}
-                    </span>
-                    
-                    <button onclick="removeTask(${t.id})" class="text-slate-500 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+            <div class="task-row glass-light rounded-xl p-3.5 sm:p-4 flex items-center gap-3 transition-all task-enter ${t.completed ? 'opacity-40' : 'hover:bg-white/[0.03]'}">
+                <!-- Checkbox -->
+                <div class="task-check ${t.completed ? 'checked' : ''}" onclick="toggleTask(${t.id})">
+                    ${t.completed ? '<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path d="M5 13l4 4L19 7"/></svg>' : ''}
                 </div>
-            </div>
-            `;
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium ${t.completed ? 'line-through text-zinc-500' : 'text-zinc-100'} leading-snug break-words">${escapeHtml(t.text)}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        ${cat ? `<span class="text-[10px] ${color.text} font-medium">${cat.icon} ${cat.name}</span>` : ''}
+                        <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${p.bg} ${p.text} ${p.border} border">${p.label}</span>
+                    </div>
+                </div>
+
+                <!-- Delete -->
+                <button onclick="removeTask(${t.id})" class="del-btn text-zinc-600 hover:text-rose-400 p-2 rounded-lg hover:bg-rose-500/10 transition-all flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>`;
         }).join('');
     }
+
+    function renderStats() {
+        const total = tasks.length;
+        const done = tasks.filter(t => t.completed).length;
+        const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statDone').textContent = done;
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('progressText').textContent = pct + '%';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ==========================================
+    // STATUS
+    // ==========================================
 
     function updateStatus(state) {
         const el = document.getElementById('syncStatus');
         const dot = el.querySelector('span');
         const txt = el.querySelectorAll('span')[1];
+        const base = 'fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs font-semibold z-50 transition-all';
 
         if (state === 'online') {
-            dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
-            txt.innerText = 'Gotowy';
+            dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]';
+            txt.textContent = 'Online';
             txt.className = 'tracking-wide uppercase text-[10px] text-emerald-400';
-            el.className = 'fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border-emerald-500/20 z-50';
         } else if (state === 'saving') {
-            dot.className = 'w-2 h-2 rounded-full border-2 border-blue-400 border-t-transparent animate-spin';
-            txt.innerText = 'Wysyłanie...';
-            txt.className = 'tracking-wide uppercase text-[10px] text-blue-400';
+            dot.className = 'w-2 h-2 rounded-full border-2 border-violet-400 border-t-transparent animate-spin';
+            txt.textContent = 'Zapis...';
+            txt.className = 'tracking-wide uppercase text-[10px] text-violet-400';
         } else if (state === 'loading') {
-            dot.className = 'w-2 h-2 rounded-full border-2 border-purple-400 border-t-transparent animate-spin';
-            txt.innerText = 'Ładowanie...';
-            txt.className = 'tracking-wide uppercase text-[10px] text-purple-400';
+            dot.className = 'w-2 h-2 rounded-full border-2 border-sky-400 border-t-transparent animate-spin';
+            txt.textContent = 'Ladowanie...';
+            txt.className = 'tracking-wide uppercase text-[10px] text-sky-400';
         } else if (state === 'saved') {
-            txt.innerText = 'Zapisano!';
+            dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+            txt.textContent = 'Zapisano!';
+            txt.className = 'tracking-wide uppercase text-[10px] text-emerald-400';
         } else if (state === 'error') {
             dot.className = 'w-2 h-2 rounded-full bg-rose-500';
-            txt.innerText = 'Błąd';
+            txt.textContent = 'Blad';
             txt.className = 'tracking-wide uppercase text-[10px] text-rose-400';
         }
     }
 
+    // ==========================================
+    // EVENT LISTENERS
+    // ==========================================
+
+    // Add task
     document.getElementById('addBtn').addEventListener('click', addTask);
-    document.getElementById('taskInput').addEventListener('keypress', e => e.key === 'Enter' && addTask());
-    
+    document.getElementById('taskInput').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
+
+    // Priority buttons
+    document.querySelectorAll('.p-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentPriority = this.dataset.p;
+            document.querySelectorAll('.p-btn').forEach(b => {
+                b.className = 'p-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700/80 border border-transparent';
+            });
+            const colors = { high: 'bg-rose-500/20 text-rose-400 border-rose-500/30', medium: 'bg-amber-400/20 text-amber-400 border-amber-400/30', low: 'bg-emerald-400/20 text-emerald-400 border-emerald-400/30' };
+            this.className = `p-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${colors[currentPriority]}`;
+        });
+    });
+
+    // Filter tabs
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentFilter = this.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = 'filter-btn text-xs px-3 py-1.5 rounded-lg font-medium transition-all bg-transparent text-zinc-500 hover:text-zinc-300';
+            });
+            this.className = 'filter-btn text-xs px-3 py-1.5 rounded-lg font-medium transition-all bg-violet-500/15 text-violet-400 border border-violet-500/20';
+            renderTasks();
+        });
+    });
+
+    // Category modal
+    document.getElementById('addCatBtn').addEventListener('click', openCatModal);
+    document.getElementById('catNameInput').addEventListener('keypress', e => { if (e.key === 'Enter') saveCategory(); });
+
+    // Refresh
     document.getElementById('refreshBtn').addEventListener('click', function() {
-        const icon = this.querySelector('svg');
+        const icon = document.getElementById('refreshIcon');
         icon.classList.add('animate-spin');
         loadFromCloud().then(() => {
             setTimeout(() => icon.classList.remove('animate-spin'), 500);
         });
     });
 
-    document.querySelectorAll('.p-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentPriority = this.dataset.p;
-            document.querySelectorAll('.p-btn').forEach(b => {
-                b.className = 'p-btn py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-transparent transition-all bg-slate-800/50 text-slate-400 hover:bg-slate-700/50';
-            });
-            let activeClass = '';
-            if(currentPriority === 'high') activeClass = 'bg-rose-500 text-white shadow-lg shadow-rose-500/20';
-            if(currentPriority === 'medium') activeClass = 'bg-amber-500 text-white shadow-lg shadow-amber-500/20';
-            if(currentPriority === 'low') activeClass = 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20';
-            this.className = `p-btn py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all transform scale-105 ${activeClass}`;
-        });
+    // Mobile sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        const sidebar = document.getElementById('sidebar');
+        const arrow = document.getElementById('sidebarArrow');
+        sidebar.classList.toggle('collapsed');
+        arrow.style.transform = sidebar.classList.contains('collapsed') ? 'rotate(180deg)' : '';
     });
 
+    // ==========================================
+    // INIT
+    // ==========================================
+
+    // Set initial states
     document.querySelector('[data-p="high"]').click();
+    document.querySelector('[data-filter="all"]').click();
+
+    // Collapse sidebar on mobile initially
+    if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('sidebarArrow').style.transform = 'rotate(180deg)';
+    }
+
+    // Load data
     loadFromCloud();
 
 </script>
